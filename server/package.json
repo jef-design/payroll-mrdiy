@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
     "build": "npx tsc",
     "start": "node dist/index.js",
     "dev": "concurrently \"npx tsc -w\" \"nodemon dist/index.js\""
@@ -11,27 +12,27 @@
   "keywords": [],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
+  "type": "module",
   "dependencies": {
-    "-": "^0.0.1",
-    "@prisma/client": "^7.1.0",
-    "@types/bcrypt": "^6.0.0",
-    "@types/cookie-parser": "^1.4.10",
-    "@types/cors": "^2.8.19",
+    "@prisma/adapter-pg": "^7.2.0",
+    "@prisma/client": "^7.2.0",
     "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^25.0.2",
     "bcrypt": "^6.0.0",
-    "concurrently": "^9.2.1",
     "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dotenv": "^17.2.3",
     "express": "^5.2.1",
-    "express-validator": "^7.3.1",
-    "jsonwebtoken": "^9.0.3",
-    "nodemon": "^3.1.11",
-    "save-dev": "^0.0.1-security",
-    "typescript": "^5.9.3"
+    "handlebars": "^4.7.8",
+    "nodemailer": "^7.0.11",
+    "prisma": "^7.2.0"
   },
   "devDependencies": {
-    "prisma": "^7.1.0"
+    "@types/bcrypt": "^6.0.0",
+    "@types/cors": "^2.8.19",
+    "@types/node": "^25.0.3",
+    "@types/nodemailer": "^7.0.4",
+    "concurrently": "^9.2.1",
+    "nodemon": "^3.1.11",
+    "typescript": "^5.9.3"
   }
 }

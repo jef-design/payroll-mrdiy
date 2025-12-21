@@ -1,15 +1,25 @@
-import express,{Request,Response} from 'express'
-import employeeRoutes from './routes/employeeRoutes'
+import express from 'express'
+import dotenv from 'dotenv'
+import employeeRoutes from './routes/employeeRoutes.js'
+import cors from 'cors'
+dotenv.config()
+
+const PORT = process.env.PORT
+
 const app = express()
-const PORT = 5000
 
+// Allow requests from your frontend
+app.use(
+  cors({
+    origin: "http://localhost:5173", // frontend URL
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+  })
+);
+app.use(express.json());
+app.use(express.urlencoded({extended: true}));
 
-app.get('/', (req,res) => {
-    res.status(200).send('HELLO EXPRESS')
-})
+app.use('/employee' , employeeRoutes)
 
-app.use('/employee', employeeRoutes)
-
-app.listen(PORT, () => {
-    console.log(`listening to PORT ${PORT}`)
+app.listen(PORT , () => {
+    console.log(`running on PORT ${PORT}`)
 })

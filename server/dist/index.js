@@ -1,15 +1,18 @@
-"use strict";
-var __importDefault = (this && this.__importDefault) || function (mod) {
-    return (mod && mod.__esModule) ? mod : { "default": mod };
-};
-Object.defineProperty(exports, "__esModule", { value: true });
-const express_1 = __importDefault(require("express"));
-const app = (0, express_1.default)();
-const PORT = 5000;
-app.get('/', (req, res) => {
-    res.status(200).send('HELLO EXPRESS');
-});
+import express from 'express';
+import dotenv from 'dotenv';
+import employeeRoutes from './routes/employeeRoutes.js';
+import cors from 'cors';
+dotenv.config();
+const PORT = process.env.PORT;
+const app = express();
+// Allow requests from your frontend
+app.use(cors({
+    origin: "http://localhost:5173", // frontend URL
+    methods: ["GET", "POST", "PUT", "DELETE", "PATCH"],
+}));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+app.use('/employee', employeeRoutes);
 app.listen(PORT, () => {
-    console.log(`listening to PORT ${PORT}`);
+    console.log(`running on PORT ${PORT}`);
 });
-//# sourceMappingURL=index.js.map

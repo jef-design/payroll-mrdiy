@@ -1,0 +1,72 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+  runtime  = "nodejs"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model employees {
+  employee_id_no                 String    @id @db.VarChar(50)
+  last_name                      String?   @db.VarChar(100)
+  first_name                     String?   @db.VarChar(100)
+  middle_name                    String?   @db.VarChar(100)
+  division                       String?   @db.VarChar(100)
+  department                     String?   @db.VarChar(100)
+  area_of_assignment             String?   @db.VarChar(100)
+  position                       String?   @db.VarChar(150)
+  count                          String?   @db.VarChar(50)
+  level                          String?   @db.VarChar(50)
+  join_date                      DateTime? @db.Date
+  year_joined                    Int?
+  email_address                  String?   @unique @db.VarChar(255)
+  contact_number                 String?   @db.VarChar(50)
+  dob                            DateTime? @db.Date
+  year                           Int?
+  age                            Int?
+  age_distribution               String?   @db.VarChar(50)
+  employment_status              String?   @db.VarChar(100)
+  tenure                         String?   @db.VarChar(250)
+  gender                         String?   @db.VarChar(20)
+  civil_status                   String?   @db.VarChar(50)
+  religion                       String?   @db.VarChar(50)
+  address                        String?
+  highest_educational_attainment String?   @db.VarChar(150)
+  institution                    String?   @db.VarChar(150)
+  basic_pay                      Decimal?  @db.Decimal(12, 2)
+  pay                            String?   @db.VarChar(50)
+  de_minimis_allowance           Decimal?  @db.Decimal(12, 2)
+  transpo_allowance              Decimal?  @db.Decimal(12, 2)
+  training_allowance             Decimal?  @db.Decimal(12, 2)
+  tin_number                     String?   @db.VarChar(50)
+  sss_number                     String?   @db.VarChar(50)
+  hdmf_number                    String?   @db.VarChar(50)
+  phic_number                    String?   @db.VarChar(50)
+  confirmation_regularization    DateTime? @db.Date
+  separation_date                String?   @db.VarChar(50)
+  salary_increase_effective      String?   @db.VarChar(50)
+  bdi_to_bpi                     String?   @db.VarChar(50)
+  section                        String?   @db.VarChar(100)
+  department2                    String?   @db.VarChar(100)
+  division2                      String?   @db.VarChar(100)
+  level_rank                     String?   @db.VarChar(50)
+  password                       String?
+}
+
+model VerificationToken {
+  id             Int      @id @default(autoincrement())
+  token          String   @unique
+  type           String
+  employee_id_no String?
+  expiresAt      DateTime
+}
+
+model persons {
+  id         Int       @id @default(autoincrement())
+  first_name String?   @db.VarChar(50)
+  last_name  String?   @db.VarChar(50)
+  dob        DateTime? @db.Date
+  email      String?   @db.VarChar(255)
+}

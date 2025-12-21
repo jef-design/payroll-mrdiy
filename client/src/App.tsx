@@ -3,6 +3,7 @@ import Home from "./pages/Home";
 import LeavePage from "./pages/LeavePage";
 import SignUp from "./pages/SignUp";
 import VerificationEmail from "./pages/VerificationEmail";
+import AddPasswordtoAccount from "./pages/AddPasswordtoAccount";
 function App() {
     const router = createBrowserRouter([
         {
@@ -14,12 +15,16 @@ function App() {
                     element: <LeavePage />,
                 },
               {
-                path: 'signup',
+                path: '/signup',
                 element: <SignUp/>
               },
                {
-                path: 'verify-email',
+                path: '/verify-email',
                 element: <VerificationEmail/>
+              },
+               {
+                path: '/password-update',
+                element: <AddPasswordtoAccount/>
               }
             ],
         },

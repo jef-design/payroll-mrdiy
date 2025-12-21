@@ -1,8 +1,10 @@
 import express from 'express'
-import { findMyEmail } from '../controllers/employeesController'
+import { addPasswordToNewUser, requestVerifyEmail, selectUseryEmail } from '../controllers/employeeController.js'
 
-const router = express.Router()
+const route = express.Router()
 
-router.get('/', findMyEmail)
+route.get('/:id', selectUseryEmail)
+route.patch('/update/password/:token', addPasswordToNewUser)
+route.post('/email-verification', requestVerifyEmail)
 
-export default router
+export default route
