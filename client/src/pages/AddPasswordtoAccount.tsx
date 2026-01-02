@@ -1,15 +1,19 @@
 import {useMutation} from "@tanstack/react-query";
 import axios from "axios";
 import {useEffect, useState} from "react";
-import {useSearchParams} from "react-router-dom";
+import {useNavigate, useSearchParams} from "react-router-dom";
 import {TailSpin} from "react-loader-spinner";
 import {IoMdEye, IoMdEyeOff} from "react-icons/io";
+import { useStore } from "../services/useStore";
 
 const AddPasswordtoAccount = () => {
     const [changePassword, setchangePassword] = useState("");
+    const [confirmPassword, setConfirmPassword] = useState("");
     const [searchParams] = useSearchParams();
     const [showPass, setShowPass] = useState(false);
     const [message, setMessage] = useState("");
+    const {setLogInUser} = useStore()
+    const navigate = useNavigate()
 
     const [loadingToken, setloadingToken] = useState(false);
     const [statusReset, setStatusReset] = useState(false);
@@ -46,8 +50,10 @@ const AddPasswordtoAccount = () => {
             }
         },
         onSuccess: (statusData: any) => {
-            // console.log("success changePassword", statusData);
+            console.log("success changePassword", statusData);
+            setLogInUser(statusData.data?.user)
             setMessage(statusData?.statusText);
+            navigate('/employee/profile')
             // navigate('/check-email',{state: {type: 'reset',email: statusData?.data?.email}})
             setStatusReset(true);
         },
@@ -76,10 +82,10 @@ const AddPasswordtoAccount = () => {
                         )}
                     </div>
 
-                    {/* <div className='rounded-md border flex bg-background justify-between items-center gap-1 px-1'>
+                    <div className='rounded-md border flex bg-background justify-between items-center gap-1 px-1'>
                         <input
-                            value={changePassword}
-                            onChange={(e) => setchangePassword(e.target.value)}
+                            value={confirmPassword}
+                            onChange={(e) => setConfirmPassword(e.target.value)}
                             placeholder='Confirm Password'
                             maxLength={12}
                             className='block border-none outline-none mt-3 p-2 rounded-md w-full'
@@ -90,7 +96,7 @@ const AddPasswordtoAccount = () => {
                         ) : (
                             <IoMdEyeOff className='text-xl cursor-pointer' onClick={() => setShowPass(true)} />
                         )}
-                    </div> */}
+                    </div>
                     <button
                         onClick={() => mutate({newPassword: changePassword})}
                         disabled={!changePassword || changePassword?.length < 6}

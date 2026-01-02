@@ -21,7 +21,7 @@ model employees {
   level                          String?   @db.VarChar(50)
   join_date                      DateTime? @db.Date
   year_joined                    Int?
-  email_address                  String?   @unique @db.VarChar(255)
+  email_address                  String?   @db.VarChar(255)
   contact_number                 String?   @db.VarChar(50)
   dob                            DateTime? @db.Date
   year                           Int?
@@ -69,4 +69,17 @@ model persons {
   last_name  String?   @db.VarChar(50)
   dob        DateTime? @db.Date
   email      String?   @db.VarChar(255)
+}
+
+model leaveRequest {
+  id            Int    @id @default(autoincrement())
+  name          String
+  approver      String
+  leave_balance String
+  leave_type    String
+  reason        String
+  from          String
+  to            String
+  duration      Int
+  status        String
 }

@@ -41,7 +41,8 @@ export const AnyNull = runtime.AnyNull;
 export const ModelName = {
     employees: 'employees',
     VerificationToken: 'VerificationToken',
-    persons: 'persons'
+    persons: 'persons',
+    leaveRequest: 'leaveRequest'
 };
 /*
  * Enums
@@ -111,6 +112,18 @@ export const PersonsScalarFieldEnum = {
     last_name: 'last_name',
     dob: 'dob',
     email: 'email'
+};
+export const LeaveRequestScalarFieldEnum = {
+    id: 'id',
+    name: 'name',
+    approver: 'approver',
+    leave_balance: 'leave_balance',
+    leave_type: 'leave_type',
+    reason: 'reason',
+    from: 'from',
+    to: 'to',
+    duration: 'duration',
+    status: 'status'
 };
 export const SortOrder = {
     asc: 'asc',
