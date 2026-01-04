@@ -143,6 +143,7 @@ export const PersonsScalarFieldEnum = {
 };
 export const LeaveRequestScalarFieldEnum = {
     id: 'id',
+    employee_id_no: 'employee_id_no',
     name: 'name',
     approver: 'approver',
     leave_balance: 'leave_balance',
@@ -151,7 +152,8 @@ export const LeaveRequestScalarFieldEnum = {
     from: 'from',
     to: 'to',
     duration: 'duration',
-    status: 'status'
+    status: 'status',
+    createdAt: 'createdAt'
 };
 export const SortOrder = {
     asc: 'asc',

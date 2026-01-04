@@ -3,11 +3,19 @@ import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 import {useStore} from "../services/useStore";
 import {useMutation} from "@tanstack/react-query";
-import axios from "axios";
 import {calculateDays} from "../helper/calculateDays";
 import {useNavigate} from "react-router-dom";
-import { TailSpin } from "react-loader-spinner";
+import {TailSpin} from "react-loader-spinner";
+import axiosInstance from "../services/axiosInstance";
+import axios from "axios";
 
+export interface IErrorMessage {
+    location?: string;
+    type?: string;
+    value?: string;
+    path?: string;
+    msg?: string;
+}
 const LeaveForm = () => {
     const [fromDate, setFromDate] = useState(new Date());
     const [toDate, setToDate] = useState(new Date());
@@ -16,18 +24,27 @@ const LeaveForm = () => {
     const [reason, setReason] = useState("");
     const navigate = useNavigate();
     const [selectedOption, setSelectedOption] = useState("");
-
-
+    const [errorMessage, setErrorMessage] = useState<IErrorMessage | string>("");
+    console.log(errorMessage)
     const {user} = useStore();
 
     const {mutate, isPending} = useMutation({
         mutationKey: ["leaverequest"],
         mutationFn: async (data: {name?: string; leaveType: string}) => {
             try {
-                const response = await axios.post(`http://localhost:5000/employee/leave`, data);
+                const response = await axiosInstance.post(`/leave`, data);
                 console.log(response.data);
                 return response.data;
-            } catch (error) {}
+            } catch (error) {
+                if (axios.isAxiosError(error)) {
+                    console.error(error);
+                    console.log(error.response?.data.messageError);
+                    setErrorMessage(error.response?.data.messageError || error.response?.data.messageError);
+                } else {
+                    setErrorMessage("An unexpected error occurred");
+                }
+                throw Error;
+            }
         },
         onSuccess: () => {
             navigate("/leave/success");
@@ -38,6 +55,7 @@ const LeaveForm = () => {
     const submitHandler = (event: React.FormEvent) => {
         event.preventDefault();
         const data = {
+            EEID: user?.EEID,
             name: user?.name,
             approver,
             leaveType,
@@ -49,15 +67,13 @@ const LeaveForm = () => {
         mutate(data);
     };
 
-  const finalDuration = (() => {
-  if (duration === 1 && (selectedOption === "First Half" || selectedOption === "Second Half")) {
-    return 0.5;
-  }
-  return duration;
-  
-})();
+    const finalDuration = (() => {
+        if (duration === 1 && (selectedOption === "First Half" || selectedOption === "Second Half")) {
+            return 0.5;
+        }
+        return duration;
+    })();
 
-    
     // 2. Handle change event
     const handleOptionChange = (e: any) => {
         setSelectedOption(e.target.value);
@@ -75,6 +91,12 @@ const LeaveForm = () => {
                 {/* Top Grid */}
                 <div className='grid grid-cols-1 md:grid-cols-2 gap-4'>
                     <div className='flex flex-col gap-1'>
+                        <label className='text-sm font-medium text-gray-600'>Employee ID</label>
+                        <p className='px-3 py-2 rounded-md border border-gray-200 bg-gray-100 text-gray-700 text-sm cursor-not-allowed'>
+                            {user?.EEID}
+                        </p>
+                    </div>
+                    <div className='flex flex-col gap-1'>
                         <label className='text-sm font-medium text-gray-600'>Name</label>
                         <input
                             disabled
@@ -87,18 +109,32 @@ const LeaveForm = () => {
                     <div className='flex flex-col gap-1'>
                         <label className='text-sm font-medium text-gray-600'>Approver</label>
                         <input
+                         style={{borderColor: Array.isArray(errorMessage) && errorMessage?.find((mes: IErrorMessage) => mes?.path === "approver") ? 'red' : ''}}
                             onChange={(e) => setApprover(e.target.value)}
                             className='px-3 py-2 rounded-md border border-gray-200 text-sm focus:outline-none focus:ring-2 focus:ring-yellow-500'
                             type='text'
-                            placeholder='Your approver email'
+                            placeholder='Approver email'
                         />
+                        <div className='my-1'>
+                            {Array.isArray(errorMessage) &&
+                                errorMessage?.find((mes: IErrorMessage) => mes?.path === "approver") && (
+                                    <p className='text-red-400 font-semibold text-xs'>
+                                        {errorMessage.find((err: IErrorMessage) => err?.path === "approver")?.msg}
+                                    </p>
+                                )}
+                        </div>
                     </div>
                     <div className='flex flex-col gap-1'>
                         <label className='text-sm font-medium text-gray-600'>Leave Type</label>
                         <select
+                         style={{borderColor: Array.isArray(errorMessage) && errorMessage?.find((mes: IErrorMessage) => mes?.path === "leaveType") ? 'red' : ''}}
+                            value={leaveType}
                             onChange={(e) => setLeaveType(e.target.value)}
                             className='px-3 py-2 rounded-md border border-gray-200 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-yellow-500'
                         >
+                            <option value='' disabled>
+                                Select leave type
+                            </option>
                             <option>Vacation Leave</option>
                             <option>Sick Leave</option>
                             <option>Leave without Pay</option>
@@ -111,6 +147,14 @@ const LeaveForm = () => {
                             <option>Violence Against Women and Children</option>
                             <option>Work from Home</option>
                         </select>
+                        <div className='my-1'>
+                            {Array.isArray(errorMessage) &&
+                                errorMessage?.find((mes: IErrorMessage) => mes?.path === "leaveType") && (
+                                    <p className='text-red-400 font-semibold text-xs'>
+                                        {errorMessage.find((err: IErrorMessage) => err?.path === "leaveType")?.msg}
+                                    </p>
+                                )}
+                        </div>
                     </div>
                     <div className='flex flex-col gap-1'>
                         <label className='text-sm font-medium text-gray-600'>Leave Balance</label>
@@ -130,19 +174,26 @@ const LeaveForm = () => {
                             disabled
                         />
                     </div>
-
-                    
                 </div>
 
                 {/* Reason */}
                 <div className='flex flex-col gap-1'>
                     <label className='text-sm font-medium text-gray-600'>Reason</label>
                     <textarea
+                    style={{borderColor: Array.isArray(errorMessage) && errorMessage?.find((mes: IErrorMessage) => mes?.path === "reason") ? 'red' : ''}}
                         value={reason}
                         onChange={(e) => setReason(e.target.value)}
-                        className='w-full h-32 px-3 py-2 rounded-md border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-yellow-500'
+                        className='w-full h-32 px-3 py-2 rounded-md border border-gray-200 text-sm resize-none focus:outline-none focus:ring-2 focus:ring-yellow-400'
                         placeholder='Briefly explain your reason...'
                     />
+                    <div className='my-1'>
+                        {Array.isArray(errorMessage) &&
+                            errorMessage?.find((mes: IErrorMessage) => mes?.path === "reason") && (
+                                <p className='text-red-400 font-semibold text-xs'>
+                                    {errorMessage.find((err: IErrorMessage) => err?.path === "reason")?.msg}
+                                </p>
+                            )}
+                    </div>
                 </div>
 
                 {/* Date Section */}
@@ -153,7 +204,7 @@ const LeaveForm = () => {
                             selected={fromDate}
                             dateFormat='MM/dd/yyyy'
                             onChange={(date: any) => {
-                                setFromDate(date)
+                                setFromDate(date);
                             }}
                             className='w-full px-3 py-2 rounded-md border border-gray-200 text-sm'
                         />
@@ -166,7 +217,7 @@ const LeaveForm = () => {
                             minDate={fromDate}
                             dateFormat='MM/dd/yyyy'
                             onChange={(date: any) => {
-                                 setToDate(date)
+                                setToDate(date);
                             }}
                             className='w-full px-3 py-2 rounded-md border border-gray-200 text-sm'
                         />
@@ -174,7 +225,9 @@ const LeaveForm = () => {
 
                     <div className='flex flex-col justify-end rounded-md bg-gray-50 border border-gray-200 p-4'>
                         <p className='text-xs text-gray-500'>Duration</p>
-                        <p className='text-lg font-semibold text-gray-800'>{finalDuration} {finalDuration === 1 ? "Day" : "Days"}</p>
+                        <p className='text-lg font-semibold text-gray-800'>
+                            {finalDuration} {finalDuration === 1 ? "Day" : "Days"}
+                        </p>
                     </div>
                 </div>
                 {duration <= 1 && (
@@ -218,10 +271,10 @@ const LeaveForm = () => {
                 {/* Submit */}
                 <button
                     onClick={submitHandler}
-                    className='w-full h-9 bg-yellow-600 hover:bg-yellow-700 transition text-white text-sm font-medium py-2.5 rounded-md'
+                    className='w-full flex cursor-pointer items-center justify-center gap-4 h-9 bg-yellow-600 hover:bg-yellow-700 transition text-white text-sm font-medium py-2.5 rounded-md'
                 >
-                     {isPending && (
-                            <TailSpin
+                    {isPending && (
+                        <TailSpin
                             visible={true}
                             height='20'
                             width='20'
@@ -229,9 +282,8 @@ const LeaveForm = () => {
                             ariaLabel='tail-spin-loading'
                             radius='1'
                         />
-                        )}
-                        <span>{isPending ? "Submitting Request..." : "Submit Leave Request"}</span>
-                    
+                    )}
+                    <span>{isPending ? "Submitting Request..." : "Submit Leave Request"}</span>
                 </button>
             </div>
         </div>

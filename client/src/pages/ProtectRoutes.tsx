@@ -5,7 +5,6 @@ import Header from "../layout/Header"
 
 const ProtectedRoutes = () => {
     const {user} = useStore()
-    console.log(user)
   return (
    <>
    <Header/>

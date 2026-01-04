@@ -31,7 +31,7 @@ export const useStore = create<UserState>()(
         set({ user: null }),
     }),
     {
-      name: "linkly-user", // storage key
+      name: "employee-user", // storage key
       // storage defaults to localStorage
     }
   )

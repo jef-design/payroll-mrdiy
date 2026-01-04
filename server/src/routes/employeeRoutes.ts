@@ -1,14 +1,16 @@
 import express from 'express'
-import { addPasswordToNewUser, leaveRequest, pendingLeaves, requestVerifyEmail, selectUseryEmail, signInEmployee } from '../controllers/employeeController.js'
+import { addPasswordToNewUser, checkresetPassToken, interceptRefreshToken, logOutUser, requestVerifyEmail, selectUseryEmail, signInEmployee } from '../controllers/employeeController.js'
+import { emailVerifyValidator, registerValidator, signInValidator } from '../middleware/validationMiddleware.js'
 
 const route = express.Router()
 
-route.get('/:id', selectUseryEmail)
-route.get('/leave', pendingLeaves)
 route.patch('/update/password/:token', addPasswordToNewUser)
-route.post('/signin', signInEmployee)
-route.post('/email-verification', requestVerifyEmail)
-route.post('/leave', leaveRequest)
+route.post('/signin',signInValidator, signInEmployee)
+route.post('/email-verification',registerValidator, requestVerifyEmail)
+route.get('/logout', logOutUser)
+route.get("/refresh", interceptRefreshToken);
+route.get("/password/:token", checkresetPassToken);
+route.get('/:id', emailVerifyValidator, selectUseryEmail)
 
 
 

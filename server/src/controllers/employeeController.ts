@@ -5,17 +5,86 @@ import Handlebars from "handlebars";
 import {LEAVE_REQUEST_EMAIL_TEMPLATE, VERIFICATION_EMAIL_TEMPLATE} from "../helper/emailTemplates.js";
 import transporter from "../utils/nodemailer.js";
 import bcrypt from "bcrypt";
+import jwt from "jsonwebtoken";
+import {validationResult} from "express-validator";
 
+//token generation
+const generateToken = (res: Response, id: string) => {
+    const secretKey: string | undefined = process.env.SECRET_KEY;
+    if (!secretKey) {
+        throw new Error("SECRET_KEY is not defined in environment variables.");
+    }
+    const Token = jwt.sign({id}, secretKey, {
+        expiresIn: "15m",
+    });
+    // if secure true and samesite is none: this not work in postman
+    // if secure true/false and samesite is strict: this work both in postman and local
+    res.cookie("jwt", Token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production" ? true : false,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 1000 * 60 * 15,
+    });
+
+    const refreshToken = jwt.sign({id}, secretKey, {
+        expiresIn: "7d",
+    });
+    res.cookie("jwtRefresh", refreshToken, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production" ? true : false,
+        sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+        maxAge: 1000 * 60 * 60 * 24 * 3,
+        //maxAge: 1000 * 20,
+    });
+    return Token;
+};
+const interceptRefreshToken = async (req: Request, res: Response) => {
+    const refreshToken = req.cookies.jwtRefresh;
+
+    if (!refreshToken) {
+        return res.status(403).json({message: "No refresh token provided"});
+    }
+    const secretKey: string | undefined = process.env.SECRET_KEY;
+    if (!secretKey) {
+        throw new Error("SECRET_KEY is not defined in environment variables.");
+    }
+    jwt.verify(refreshToken, secretKey, (err: any, decoded: any) => {
+        if (err) return res.status(403).json({message: "Invalid refresh token"});
+        const {id} = decoded;
+        const newToken = jwt.sign({id}, secretKey, {
+            expiresIn: "15m",
+        });
+        res.cookie("jwt", newToken, {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production" ? true : false,
+            sameSite: process.env.NODE_ENV === "production" ? "none" : "strict",
+            maxAge: 1000 * 60 * 15,
+            //maxAge: 1000 * 15
+        });
+        res.status(200).json({message: "Access token refreshed"});
+    });
+};
 const selectUseryEmail = async (req: Request, res: Response) => {
     const email = req.params.id;
+     const resError = validationResult(req);
+
+if (!resError.isEmpty()) {
+    return res.status(400).json({
+        messageError: resError.array().map(err => ({
+            path: "email",
+            msg: err.msg
+        }))
+    });
+}
     try {
+        
         const ee = await prisma.employees.findFirst({
             where: {email_address: email},
         });
-
+       
         if (!ee) {
             // Employee not found
-            return res.status(404).json({
+            return res.status(400).json({
                 message: `Employee email not found: Please contact your HR or onboarding team to verify your account.`,
             });
         }
@@ -31,8 +100,11 @@ const selectUseryEmail = async (req: Request, res: Response) => {
 //sending request to verify user by email
 const requestVerifyEmail = async (req: Request, res: Response) => {
     const usertoVerify = req.body.email;
-    console.log(req.body);
+    const resError = validationResult(req);
 
+    if (!resError.isEmpty()) {
+        return res.status(400).json({messageError: resError.array()});
+    }
     try {
         const findAccount = await prisma.employees.findFirst({
             where: {
@@ -69,7 +141,7 @@ const requestVerifyEmail = async (req: Request, res: Response) => {
         const htmlTemplate = template(replacementData);
         await transporter.sendMail({
             // from: '"DiyPayroll" mariel.gonzales@mrdiy.com',
-            from: '"DiyPayroll" mrdiy.dev@gmail.com',
+            from: '"MrD.I.Y Employee Portal" mrdiy.dev@gmail.com',
             to: `${"bermejojff97@gmail.com"}`,
             subject: "Please verify your account",
             text: "Thank you for using DiyPayroll",
@@ -124,8 +196,12 @@ function calculateLeaveCredits(joinDate: string | Date, asOfDate = new Date()) {
 }
 
 const signInEmployee = async (req: Request, res: Response) => {
-    console.log(req.body);
     const {email, password} = req.body;
+    const resError = validationResult(req);
+    console.log(resError.array());
+    if (!resError.isEmpty()) {
+        return res.status(400).json({messageError: resError.array()});
+    }
     try {
         const userExist: any = await prisma.employees.findFirst({
             where: {
@@ -134,14 +210,15 @@ const signInEmployee = async (req: Request, res: Response) => {
         });
 
         if (!userExist) {
-            return res.status(400).json({message: "Email not found, Please register first"});
+            return res.status(400).json({message: "Account not found, Please register first"});
         }
 
         const matched = await bcrypt.compare(password, userExist?.password);
 
         const leaveCredits = calculateLeaveCredits(userExist.join_date);
-        console.log("leave credits", leaveCredits, userExist.join_date);
+
         if (matched) {
+            generateToken(res, userExist.employee_id_no);
             res.status(200).json({
                 message: "User successfully signin",
                 user: {
@@ -155,11 +232,29 @@ const signInEmployee = async (req: Request, res: Response) => {
                 },
             });
         } else {
-            res.status(400).json({message: "Invalid Email or Password"});
+            res.status(400).json({message: "Invalid Email or Password or Try to register your email first"});
         }
     } catch (error) {
         res.status(400).json({message: "user not signin", error});
     }
+};
+//check password token
+const checkresetPassToken = async (req: Request, res: Response) => {
+    console.log("check token", req.params);
+    const resetToken = req.params.token;
+    try {
+        const token = await prisma.verificationToken.findFirst({
+            where: {
+                token: resetToken,
+                type: "password",
+            },
+        });
+
+        if (!token) {
+            return res.status(400).json({message: "Invalid or expired token"});
+        }
+        res.status(200).json({message: "Valid token"});
+    } catch (error) {}
 };
 const addPasswordToNewUser = async (req: Request, res: Response) => {
     const {token} = req.params;
@@ -178,7 +273,6 @@ const addPasswordToNewUser = async (req: Request, res: Response) => {
             },
         });
 
-        console.log("sad", userTokenInfo);
         if (!token) {
             return res.status(404).json({message: "No token found"});
         }
@@ -196,7 +290,7 @@ const addPasswordToNewUser = async (req: Request, res: Response) => {
                 type: "password",
             },
         });
-        const leaveCredits = calculateLeaveCredits(user?.join_date ?? '');
+        const leaveCredits = calculateLeaveCredits(user?.join_date ?? "");
         res.status(200).json({
             message: "Password added to user",
             user: {
@@ -211,75 +305,13 @@ const addPasswordToNewUser = async (req: Request, res: Response) => {
         });
     } catch (error) {}
 };
-
-// LEAVE REQUEST
-
-const leaveRequest = async (req: Request, res: Response) => {
-    const {name, approver, leaveType, reason, from, to, duration} = req.body;
-    console.log(req.body);
+const logOutUser = async (req: Request, res: Response) => {
     try {
-        const leave = await prisma.leaveRequest.create({
-            data: {
-                name: name,
-                approver: approver,
-                leave_balance: "test",
-                leave_type: leaveType,
-                reason: reason,
-                from: from,
-                to: to,
-                duration: duration,
-                status: 'pending'
-            },
+        res.cookie("jwt", "", {
+            httpOnly: true,
+            expires: new Date(1),
         });
-        console.log(leave, "saltRounds");
-        const template = Handlebars.compile(LEAVE_REQUEST_EMAIL_TEMPLATE);
-        const replacementData = {
-            name: name,
-            leaveType,
-            from: from,
-            to: to,
-            duration: duration,
-            reason: reason,
-        };
-        const htmlTemplate = template(replacementData);
-        await transporter.sendMail({
-            from: '"MrD.I.Y Payroll" mrdiy.dev@gmail.com',
-            to: approver,
-            subject: "Leave Request",
-            text: "Thank you for using DiyPayroll",
-            html: htmlTemplate,
-        });
-        res.status(200).json({message: "leave request sent", leave});
-    } catch (error) {
-        console.error("CREATE LEAVE ERROR:", error);
-        res.status(500).json({error: "Failed to create leave request"});
-    }
+        res.status(200).json({message: "Logged out successfully"});
+    } catch (error) {}
 };
-const pendingLeaves = async (req: Request, res: Response) => {
-    console.log('count')
-    try {
-        const leave = await prisma.leaveRequest.count({
-            where: {
-                
-                status: 'pending',
-
-            }
-        })
-        res.status(200).json({message: 'pending leave count', leave})
-    } catch (error) {
-        
-    }
-}
-const approvedLeaves = async (req: Request, res: Response) => {
-    try {
-        const leave = await prisma.leaveRequest.count({
-            where: {
-                status: 'approved'
-            }
-        })
-        res.status(200).json({message: 'approved leave count', leave})
-    } catch (error) {
-        
-    }
-}
-export {selectUseryEmail, requestVerifyEmail, signInEmployee, addPasswordToNewUser, leaveRequest, pendingLeaves, approvedLeaves};
+export {selectUseryEmail, requestVerifyEmail, signInEmployee,checkresetPassToken, addPasswordToNewUser, logOutUser, interceptRefreshToken};

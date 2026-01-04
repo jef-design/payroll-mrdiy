@@ -72,14 +72,16 @@ model persons {
 }
 
 model leaveRequest {
-  id            Int    @id @default(autoincrement())
-  name          String
-  approver      String
-  leave_balance String
-  leave_type    String
-  reason        String
-  from          String
-  to            String
-  duration      Int
-  status        String
+  id             Int      @id @default(autoincrement())
+  employee_id_no String
+  name           String
+  approver       String
+  leave_balance  String
+  leave_type     String
+  reason         String
+  from           String
+  to             String
+  duration       Int
+  status         String
+  createdAt      DateTime @default(now())
 }

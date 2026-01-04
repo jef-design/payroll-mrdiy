@@ -1,121 +1,153 @@
-import {useMutation} from "@tanstack/react-query";
-import axios from "axios";
-import {useEffect, useState} from "react";
+import {useMutation, useQuery} from "@tanstack/react-query";
+import {useState} from "react";
 import {useNavigate, useSearchParams} from "react-router-dom";
 import {TailSpin} from "react-loader-spinner";
 import {IoMdEye, IoMdEyeOff} from "react-icons/io";
-import { useStore } from "../services/useStore";
+import {useStore} from "../services/useStore";
+import axiosInstance from "../services/axiosInstance";
+import axios from "axios";
+import {BsExclamationCircle} from "react-icons/bs";
 
 const AddPasswordtoAccount = () => {
-    const [changePassword, setchangePassword] = useState("");
+    const [password, setPassword] = useState("");
     const [confirmPassword, setConfirmPassword] = useState("");
-    const [searchParams] = useSearchParams();
     const [showPass, setShowPass] = useState(false);
-    const [message, setMessage] = useState("");
-    const {setLogInUser} = useStore()
-    const navigate = useNavigate()
+    const [error, setError] = useState("");
 
-    const [loadingToken, setloadingToken] = useState(false);
-    const [statusReset, setStatusReset] = useState(false);
-
+    const [searchParams] = useSearchParams();
     const accessToken = searchParams.get("access");
+    console.log(error);
+    const {setLogInUser} = useStore();
+    const navigate = useNavigate();
 
-    // useEffect(() => {
-    //     if (resetToken) {
-    //         setloadingToken(true);
-    //         axios
-    //             .get(`/user/profile/password/${resetToken}`)
-    //             .then((res) => {
-    //                 setMessage(res.data.message);
-    //                 console.log(res.data);
-    //                 setloadingToken(false);
-    //             })
-    //             .catch((err) => {
-    //                 setMessage(err.response?.data?.message);
-    //                 setloadingToken(false);
-    //             });
-    //     }
-    // }, []);
-    const {mutate, isPending} = useMutation({
-        mutationKey: ["addpassword"],
-        mutationFn: async (password: {newPassword: string}) => {
+    const {data} = useQuery({
+        queryKey: ["accesstoken"],
+        queryFn: async () => {
             try {
-                const response = await axios.patch(
-                    `http://localhost:5000/employee/update/password/${accessToken}`,
-                    password
-                );
-                return response;
+                const response = await axiosInstance.get(`/employee/password/${accessToken}`);
+                return response.data;
             } catch (error) {
-                return error;
+                if (axios.isAxiosError(error)) {
+                    console.error(error);
+                    console.log(error.response?.data.messageError);
+                    setError(error.response?.data.messageError || error.response?.data.message);
+                } else {
+                    setError("An unexpected error occurred");
+                }
+                throw Error;
             }
         },
-        onSuccess: (statusData: any) => {
-            console.log("success changePassword", statusData);
-            setLogInUser(statusData.data?.user)
-            setMessage(statusData?.statusText);
-            navigate('/employee/profile')
-            // navigate('/check-email',{state: {type: 'reset',email: statusData?.data?.email}})
-            setStatusReset(true);
+    });
+
+    const {mutate, isPending} = useMutation({
+        mutationKey: ["addpassword"],
+        mutationFn: async (payload: {newPassword: string}) => {
+            const response = await axiosInstance.patch(`/employee/update/password/${accessToken}`, payload);
+            return response;
+        },
+        onSuccess: (res: any) => {
+            setLogInUser(res.data?.user);
+            navigate("/employee/profile");
+        },
+        onError: () => {
+            setError("Something went wrong. Please try again.");
         },
     });
-    return (
-        <div>
-            <div className="mx-auto max-w-5xl p-2 mt-5">
-                <div className='mb-4'>
-                    <h2 className='text-3xl font-bold'>Enter your New password</h2>
-                </div>
-                <div>
-                    You can now change your password, password must be 6 - 12 characters.
-                    <div className='rounded-md mb-4 border flex bg-background justify-between items-center gap-1 px-1'>
-                        <input
-                            value={changePassword}
-                            onChange={(e) => setchangePassword(e.target.value)}
-                            placeholder='Enter Password'
-                            maxLength={12}
-                            className='block border-none outline-none mt-3 p-2 rounded-md w-full'
-                            type={showPass ? "text" : "password"}
-                        />
-                        {showPass ? (
-                            <IoMdEye className='text-xl cursor-pointer' onClick={() => setShowPass(false)} />
-                        ) : (
-                            <IoMdEyeOff className='text-xl cursor-pointer' onClick={() => setShowPass(true)} />
-                        )}
-                    </div>
 
-                    <div className='rounded-md border flex bg-background justify-between items-center gap-1 px-1'>
-                        <input
-                            value={confirmPassword}
-                            onChange={(e) => setConfirmPassword(e.target.value)}
-                            placeholder='Confirm Password'
-                            maxLength={12}
-                            className='block border-none outline-none mt-3 p-2 rounded-md w-full'
-                            type={showPass ? "text" : "password"}
-                        />
-                        {showPass ? (
-                            <IoMdEye className='text-xl cursor-pointer' onClick={() => setShowPass(false)} />
-                        ) : (
-                            <IoMdEyeOff className='text-xl cursor-pointer' onClick={() => setShowPass(true)} />
-                        )}
+    const handleSubmit = () => {
+        if (password !== confirmPassword) {
+            setError("Passwords do not match.");
+            return;
+        }
+        setError("");
+        mutate({newPassword: password});
+    };
+
+    return (
+        <div className='min-h-screen flex items-center justify-center bg-gray-50 px-4'>
+            <div className='w-full max-w-md bg-white rounded-xl shadow-md border border-gray-200 p-8'>
+                {error === "Invalid or expired token" ? (
+                    <div className=''>
+                        <div className=''>
+                            {/* Icon */}
+                            <div className='flex justify-center mb-4'>
+                                <BsExclamationCircle className='h-14 w-14 text-red-500' />
+                            </div>
+
+                            {/* Title */}
+                            <h2 className='text-2xl text-center font-bold text-gray-800'>Link Expired</h2>
+
+                            {/* Message */}
+                            <p className='mt-3 text-sm text-gray-600 leading-relaxed'>
+                                This verification link has expired or is no longer valid. For your security, links are
+                                only active for a limited time.
+                            </p>
+
+                            {/* <p className='mt-3 text-sm text-gray-500'>
+                                Please request a new verification link to continue.
+                            </p> */}
+                        </div>
                     </div>
-                    <button
-                        onClick={() => mutate({newPassword: changePassword})}
-                        disabled={!changePassword || changePassword?.length < 6}
-                        className=' w-full my-2 bg-[#ffc20e] p-4  mt-2 rounded-md cursor-pointer disabled:opacity-50'
-                    >
-                        {isPending ? (
-                            <TailSpin
-                                visible={true}
-                                height='25'
-                                width='25'
-                                color='#ffff'
-                                ariaLabel='tail-spin-loading'
-                                radius='1'
-                            />
-                        ) : (
-                            "Change Password"
-                        )}
-                    </button>
-                </div>
+                ) : (
+                    <div>
+                        {/* Header */}
+                        <h2 className='text-2xl font-bold text-gray-800 mb-2'>Email Verified</h2>
+                        <h2 className='text-2xl font-bold text-gray-800 mb-2'>Set Your Password</h2>
+                        <p className='text-sm text-gray-500 mb-6'>
+                            Your password must be between <span className='font-medium'>6–12 characters</span>.
+                        </p>
+
+                        {/* Password Input */}
+                        <div className='space-y-4'>
+                            <div className='relative'>
+                                <input
+                                    type={showPass ? "text" : "password"}
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    placeholder='New password'
+                                    maxLength={12}
+                                    className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none'
+                                />
+                                <span
+                                    className='absolute right-3 top-2.5 cursor-pointer text-gray-500'
+                                    onClick={() => setShowPass(!showPass)}
+                                >
+                                    {showPass ? <IoMdEye /> : <IoMdEyeOff />}
+                                </span>
+                            </div>
+
+                            {/* Confirm Password */}
+                            <div className='relative'>
+                                <input
+                                    type={showPass ? "text" : "password"}
+                                    value={confirmPassword}
+                                    onChange={(e) => setConfirmPassword(e.target.value)}
+                                    placeholder='Confirm password'
+                                    maxLength={12}
+                                    className='w-full rounded-md border border-gray-300 px-3 py-2 text-sm focus:ring-2 focus:ring-yellow-400 focus:outline-none'
+                                />
+                                <span
+                                    className='absolute right-3 top-2.5 cursor-pointer text-gray-500'
+                                    onClick={() => setShowPass(!showPass)}
+                                >
+                                    {showPass ? <IoMdEye /> : <IoMdEyeOff />}
+                                </span>
+                            </div>
+                        </div>
+
+                        {/* Error Message */}
+                        {error && <p className='mt-3 text-xs font-medium text-red-500'>{error}</p>}
+
+                        {/* Submit Button */}
+                        <button
+                            onClick={handleSubmit}
+                            disabled={!password || password.length < 6 || isPending}
+                            className='mt-6 w-full rounded-md bg-yellow-400 py-2 text-sm font-semibold text-gray-900 hover:bg-yellow-300 transition disabled:opacity-50 flex justify-center'
+                        >
+                            {isPending ? <TailSpin height={22} width={22} color='#000' /> : "Save Password"}
+                        </button>
+                    </div>
+                )}
             </div>
         </div>
     );

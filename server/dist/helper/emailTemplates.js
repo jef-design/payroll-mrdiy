@@ -176,12 +176,12 @@ export const LEAVE_REQUEST_EMAIL_TEMPLATE = `
     <h2>Leave Request Pending Approval</h2>
 
     <p>
-      Hello <strong>{{approverName}}</strong>,<br><br>
       You have received a new leave request from <strong>{{name}}</strong>.
       Please review the details below and take the necessary action.
     </p>
 
     <div class="details">
+    <p><strong>Employee ID:</strong> {{EEID}}</p>
       <p><strong>Employee:</strong> {{name}}</p>
       <p><strong>Leave Type:</strong> {{leaveType}}</p>
       <p><strong>Leave Dates:</strong> {{from}} – {{to}}</p>
@@ -190,7 +190,7 @@ export const LEAVE_REQUEST_EMAIL_TEMPLATE = `
     </div>
 
     <div class="button-wrapper">
-      <a href="{{approvalLink}}" class="button">Review & Approve Leave</a>
+      <a href="{{approvalLink}}" class="button">Review Leave Request</a>
     </div>
 
     <div class="footer">
